@@ -51,6 +51,28 @@
 npm install build-meta-injector -D
 ```
 
+### 快速开始（零配置）
+
+所有参数都是可选的，**什么也不传就能用**：
+
+```js
+// Vite — 无参数调用
+import buildMetaInjector from 'build-meta-injector/vite';
+export default { plugins: [buildMetaInjector()] };
+
+// Webpack — 无参数调用
+const buildMetaInjector = require('build-meta-injector/webpack');
+module.exports = { plugins: [buildMetaInjector()] };
+
+// Rollup — 无参数调用
+import buildMetaInjector from 'build-meta-injector/rollup';
+export default { plugins: [buildMetaInjector()] };
+```
+
+> ⚠️ esbuild 需要指定 `html` 和 `outputHtml` 参数，因为 esbuild 本身不处理 HTML 文件。
+
+默认会注入：构建时间、版本号、环境信息、Commit Hash、Commit Message。
+
 ### Vite 示例
 
 ```js
@@ -169,6 +191,8 @@ await esbuild.build({
 | `outputHtml` | string | `undefined` | esbuild 输出 HTML 路径 |
 
 ### 默认配置
+
+插件**支持零配置使用**，不传任何参数即可生效。以下为默认配置，所有字段均可按需开启或关闭：
 
 ```js
 {
@@ -315,6 +339,18 @@ npm install build-meta-injector -D
 ```
 
 ### Quick Example (Vite)
+
+Zero-config — works with no arguments:
+
+```js
+import buildMetaInjector from 'build-meta-injector/vite';
+
+export default {
+  plugins: [buildMetaInjector()], // all defaults, nothing to configure
+};
+```
+
+You can also pass options:
 
 ```js
 import buildMetaInjector from 'build-meta-injector/vite';
