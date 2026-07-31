@@ -1,0 +1,96 @@
+{
+  "name": "build-meta-injector",
+  "version": "1.0.0",
+  "description": "Inject build time, version, environment and Git metadata into HTML across modern frontend build tools.",
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "z-Zihan",
+    "url": "https://github.com/z-Zihan/"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./vite": {
+      "import": "./dist/vite.js",
+      "require": "./dist/vite.cjs"
+    },
+    "./webpack": {
+      "import": "./dist/webpack.js",
+      "require": "./dist/webpack.cjs"
+    },
+    "./rollup": {
+      "import": "./dist/rollup.js",
+      "require": "./dist/rollup.cjs"
+    },
+    "./rspack": {
+      "import": "./dist/rspack.js",
+      "require": "./dist/rspack.cjs"
+    },
+    "./esbuild": {
+      "import": "./dist/esbuild.js",
+      "require": "./dist/esbuild.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "build-meta",
+    "build-time",
+    "environment",
+    "git-commit",
+    "html",
+    "vite",
+    "webpack",
+    "rollup",
+    "rspack",
+    "esbuild",
+    "frontend-build"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/z-Zihan/build-meta-injector.git"
+  },
+  "bugs": {
+    "url": "https://github.com/z-Zihan/build-meta-injector/issues"
+  },
+  "homepage": "https://github.com/z-Zihan/build-meta-injector#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "build": "node build/build.mjs",
+    "lint": "eslint src/ test/ build/",
+    "test": "node --test test/unit/*.test.js test/integration/*.test.js",
+    "test:unit": "node --test test/unit/*.test.js",
+    "test:integration": "node --test test/integration/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "vite": ">=3.0.0",
+    "webpack": ">=5.0.0",
+    "rollup": ">=3.0.0",
+    "@rspack/core": ">=0.5.0",
+    "esbuild": ">=0.17.0",
+    "html-webpack-plugin": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": { "optional": true },
+    "webpack": { "optional": true },
+    "rollup": { "optional": true },
+    "@rspack/core": { "optional": true },
+    "esbuild": { "optional": true },
+    "html-webpack-plugin": { "optional": true }
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
+  }
+}
