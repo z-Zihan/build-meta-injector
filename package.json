@@ -1,6 +1,6 @@
 {
   "name": "build-meta-injector",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Inject build time, version, environment and Git metadata into HTML across modern frontend build tools.",
   "type": "module",
   "license": "MIT",
@@ -83,12 +83,24 @@
     "html-webpack-plugin": ">=5.0.0"
   },
   "peerDependenciesMeta": {
-    "vite": { "optional": true },
-    "webpack": { "optional": true },
-    "rollup": { "optional": true },
-    "@rspack/core": { "optional": true },
-    "esbuild": { "optional": true },
-    "html-webpack-plugin": { "optional": true }
+    "vite": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    },
+    "rollup": {
+      "optional": true
+    },
+    "@rspack/core": {
+      "optional": true
+    },
+    "esbuild": {
+      "optional": true
+    },
+    "html-webpack-plugin": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "eslint": "^9.0.0"
