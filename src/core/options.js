@@ -11,7 +11,7 @@ const DEFAULT_OPTIONS = {
   locale: 'zh-CN',
   position: 'after-doctype',
   fullCommitHash: false,
-  applyInDev: false,
+  applyInDev: true,
   customData: {},
   root: undefined,
   debug: false,

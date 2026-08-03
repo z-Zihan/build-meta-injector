@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.2 (2026-08-03)
+
+### Changes
+
+- 💥 **Breaking**: `applyInDev` default changed from `false` to `true` — the plugin now injects metadata in development mode by default
+- 📖 README restructured: English documentation moved to the top, Chinese documentation below
+- 📖 Added detailed configuration reference with all possible values for every option
+- 📖 Added `position` fallback behavior table
+- 📖 Updated FAQ to reflect new `applyInDev` default
+
+## 1.0.1 (2026-07-31)
+
+### Changes
+
+- 📖 Added zero-config usage documentation
+- 📖 README supplemented with no-argument examples for all adapters
+
 ## 1.0.0 (2026-07-31)
 
 ### Initial Release

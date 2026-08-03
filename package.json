@@ -1,6 +1,6 @@
 {
   "name": "build-meta-injector",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Inject build time, version, environment and Git metadata into HTML across modern frontend build tools.",
   "type": "module",
   "license": "MIT",
