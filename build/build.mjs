@@ -7,6 +7,7 @@ const __dirname = dirname(__filename);
 const ROOT = resolve(__dirname, '..');
 const SRC = join(ROOT, 'src');
 const DIST = join(ROOT, 'dist');
+const TYPES = join(ROOT, 'types');
 
 const ENTRIES = ['index.js', 'adapters/vite.js', 'adapters/webpack.js', 'adapters/rollup.js', 'adapters/rspack.js', 'adapters/esbuild.js'];
 
@@ -313,6 +314,17 @@ for (const entry of ENTRIES) {
   
   console.log(`  -> dist/${baseName}.js (ESM)`);
   console.log(`  -> dist/${baseName}.cjs (CJS)`);
+
+  // Type declarations: copy the hand-written .d.ts and mirror it as .d.cts for
+  // the require() resolution path.
+  const dtsPath = join(TYPES, `${baseName}.d.ts`);
+  if (existsSync(dtsPath)) {
+    const dts = readFileSync(dtsPath, 'utf-8');
+    writeFileSync(join(DIST, `${baseName}.d.ts`), dts, 'utf-8');
+    writeFileSync(join(DIST, `${baseName}.d.cts`), dts, 'utf-8');
+    console.log(`  -> dist/${baseName}.d.ts`);
+    console.log(`  -> dist/${baseName}.d.cts`);
+  }
 }
 
 console.log('Build complete!');

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.3 (2026-08-12)
+
+### Changes
+
+- ✨ Added full TypeScript type declarations for all 6 entry points (`index`, `vite`, `webpack`, `rollup`, `rspack`, `esbuild`)
+- ✨ `package.json` `exports` now exposes `types` conditions (`.d.ts` for ESM, `.d.cts` for CJS) — fixes `ts(7016)` when importing `build-meta-injector/vite` etc. in TS projects
+- ✨ Added `types/` hand-written declarations, copied into `dist/` by the build script
+
 ## 1.0.2 (2026-08-03)
 
 ### Changes
