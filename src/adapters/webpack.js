@@ -1,6 +1,7 @@
 import { resolveOptions } from '../core/options.js';
 import { collectMeta } from '../core/collect-meta.js';
 import { injectHtml } from '../core/inject-html.js';
+import { processHtmlAsset } from '../core/process-html-asset.js';
 
 export default function webpackAdapter(userOptions) {
   const options = resolveOptions(userOptions);
@@ -68,12 +69,4 @@ export default function webpackAdapter(userOptions) {
       });
     }
   };
-}
-
-function processHtmlAsset(data, options, mode, compilerContext) {
-  const root = options.root || compilerContext || process.cwd();
-  const meta = collectMeta(options, { mode, root });
-  if (meta.length > 0) {
-    data.html = injectHtml(data.html, meta, options.position);
-  }
 }

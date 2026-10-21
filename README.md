@@ -53,18 +53,18 @@ npm install build-meta-injector -D
 
 ### Quick Start (Zero Config)
 
-All options are optional — **pass nothing and it just works**:
-
-Core utilities (framework-agnostic):
+One entry, every build tool — **pass nothing and it just works**:
 
 ```js
-// Core utilities (framework-agnostic)
-import { collectMeta, injectHtml } from 'build-meta-injector';
-const meta = collectMeta();
-const html = injectHtml('<html>...</html>', meta);
+import buildMetaInjector from 'build-meta-injector';
+export default { plugins: [buildMetaInjector()] };
 ```
 
-The main entry point exports framework-independent helpers: they collect metadata and inject it into an HTML string, with no knowledge of any build tool. The adapter subpaths (`build-meta-injector/vite`, `/webpack`, `/rollup`, `/rspack`, `/esbuild`) wrap these helpers for a specific build tool's integration points, so use the adapters when you want automatic integration.
+The same code works unchanged in Vite, Webpack, Rollup, Rspack and esbuild. The default export carries the hooks of all five tools (`transformIndexHtml`, `generateBundle`, `apply`, `setup`); each tool uses the ones it understands and ignores the rest, so there is no detection step and nothing to configure.
+
+> ⚠️ esbuild has no HTML pipeline of its own, so tell it where the HTML lives: `buildMetaInjector({ html: 'index.html', outputHtml: 'dist/index.html' })`.
+
+Need finer-grained control? Each adapter is still available on its own subpath:
 
 ```js
 // Vite
@@ -80,7 +80,13 @@ import buildMetaInjector from 'build-meta-injector/rollup';
 export default { plugins: [buildMetaInjector()] };
 ```
 
-> ⚠️ esbuild requires `html` and `outputHtml` options since esbuild doesn't process HTML files natively.
+The main entry also exports the framework-independent helpers the adapters are built on:
+
+```js
+import { collectMeta, injectHtml } from 'build-meta-injector';
+const meta = collectMeta();
+const html = injectHtml('<html>...</html>', meta);
+```
 
 By default, the plugin injects: build time, version, environment, commit hash, and commit message.
 
@@ -542,34 +548,40 @@ npm install build-meta-injector -D
 
 ### 快速开始（零配置）
 
-所有参数都是可选的，**什么也不传就能用**：
-
-主入口工具函数（与框架无关）：
+一个入口，适配全部构建工具——**什么也不传就能用**：
 
 ```js
-// 核心工具函数（与框架无关）
-import { collectMeta, injectHtml } from 'build-meta-injector';
-const meta = collectMeta();
-const html = injectHtml('<html>...</html>', meta);
+import buildMetaInjector from 'build-meta-injector';
+export default { plugins: [buildMetaInjector()] };
 ```
 
-主入口导出的是与框架无关的工具函数：负责收集元信息并注入到 HTML 字符串中，不感知任何构建工具。适配器子路径（`build-meta-injector/vite`、`/webpack`、`/rollup`、`/rspack`、`/esbuild`）则是这些工具函数在具体构建工具集成点上的封装，需要自动集成时使用适配器。
+这段代码在 Vite、Webpack、Rollup、Rspack、esbuild 中都能原样工作。默认导出的插件同时携带五种构建工具的钩子（`transformIndexHtml`、`generateBundle`、`apply`、`setup`），各构建工具只用自己认识的钩子，其余字段会被忽略，所以不需要任何探测或配置。
+
+> ⚠️ esbuild 本身不处理 HTML 文件，需要告诉它 HTML 的位置：`buildMetaInjector({ html: 'index.html', outputHtml: 'dist/index.html' })`。
+
+需要更细粒度控制时，仍可按子路径引入单个适配器：
 
 ```js
-// Vite — 无参数调用
+// Vite
 import buildMetaInjector from 'build-meta-injector/vite';
 export default { plugins: [buildMetaInjector()] };
 
-// Webpack — 无参数调用
+// Webpack
 const buildMetaInjector = require('build-meta-injector/webpack');
 module.exports = { plugins: [buildMetaInjector()] };
 
-// Rollup — 无参数调用
+// Rollup
 import buildMetaInjector from 'build-meta-injector/rollup';
 export default { plugins: [buildMetaInjector()] };
 ```
 
-> ⚠️ esbuild 需要指定 `html` 和 `outputHtml` 参数，因为 esbuild 本身不处理 HTML 文件。
+主入口同时导出这些适配器所依赖的、与框架无关的工具函数：
+
+```js
+import { collectMeta, injectHtml } from 'build-meta-injector';
+const meta = collectMeta();
+const html = injectHtml('<html>...</html>', meta);
+```
 
 默认会注入：构建时间、版本号、环境信息、Commit Hash、Commit Message。
 

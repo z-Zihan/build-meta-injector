@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.5 (2026-10-21)
+
+### Features
+
+- ✨ Universal default export with auto-detection for all 5 build tools: `import buildMetaInjector from 'build-meta-injector'` now returns one plugin object that works unchanged in Vite, Webpack, Rollup, Rspack and esbuild — no per-tool subpath and no configuration. It carries `transformIndexHtml`, `generateBundle`, `apply` and `setup`, plus Vite's `configResolved`; each tool uses the hooks it understands and ignores the rest.
+- ✨ `apply` dispatches to the Rspack or Webpack implementation based on the compiler, so a single instance covers both.
+- ✨ Once-guard prevents double injection when one build fires more than one hook (Vite builds run `transformIndexHtml` and then Rollup's `generateBundle` over the same HTML).
+- ✨ TypeScript declarations for the universal plugin on the main entry.
+
+### Changed
+
+- 🧹 The shared `beforeEmit` injection helper moved to `src/core/process-html-asset.js`. Webpack and Rspack adapter behavior is unchanged; the move keeps the adapters from declaring the same top-level function when bundled together.
+
 ## 1.0.4 (2026-10-21)
 
 ### Fixed

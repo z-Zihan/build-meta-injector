@@ -5,3 +5,6 @@ export { readPackageVersion } from './core/package.js';
 export { formatTime, sanitizeCommentValue, sanitizeCommentKey } from './core/formatter.js';
 export { injectHtml } from './core/inject-html.js';
 export { collectMeta } from './core/collect-meta.js';
+
+import buildMetaInjector from './adapters/universal.js';
+export default buildMetaInjector;

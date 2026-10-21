@@ -140,3 +140,34 @@ export function injectHtml(html: string, comments: string[], position?: InjectPo
 
 /** Resolve options and collect every enabled metadata comment line (build time, version, environment, Git info, custom data). */
 export function collectMeta(userOptions?: BuildMetaInjectorOptions, context?: MetaContext): string[];
+
+/**
+ * Minimal shape of the object returned by the default export. It is a composite of
+ * the Vite, Rollup, Webpack/Rspack and esbuild plugins: every build tool reads the
+ * hooks it understands and ignores the rest, so the same object can be placed in
+ * any tool's `plugins` array. Deliberately independent of the optional peer
+ * dependencies' own types.
+ */
+export interface UniversalMetaInjectorPlugin {
+  /** Plugin name, shared by every build tool. */
+  name: string;
+  /** Vite hook: captures the resolved mode and root before HTML is transformed. */
+  configResolved(config: { mode?: string; root?: string; [key: string]: unknown }): void;
+  /** Vite hook: inject metadata into an HTML document. */
+  transformIndexHtml(html: string, context?: unknown): string;
+  /** Rollup hook: inject metadata into emitted `.html` assets that were not already transformed. */
+  generateBundle(outputOptions: unknown, bundle: Record<string, unknown>): void;
+  /** Webpack / Rspack hook: dispatches to the matching compiler integration. */
+  apply(compiler: unknown): void;
+  /** esbuild hook: registers `onStart` / `onEnd` handlers. */
+  setup(build: unknown): void;
+}
+
+/**
+ * Create a plugin that works unchanged in Vite, Webpack, Rollup, Rspack and esbuild.
+ *
+ * @example
+ * import buildMetaInjector from 'build-meta-injector';
+ * export default { plugins: [buildMetaInjector()] };
+ */
+export default function buildMetaInjector(options?: BuildMetaInjectorOptions): UniversalMetaInjectorPlugin;
