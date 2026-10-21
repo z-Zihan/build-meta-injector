@@ -42,6 +42,25 @@ describe('universal - shape', () => {
 });
 
 describe('universal - vite', () => {
+  it('vite calls apply as a plugin filter', () => {
+    const plugin = buildMetaInjector(OPTIONS);
+
+    // Vite's resolveConfig runs `typeof p.apply === 'function' ? p.apply({...config, mode}, configEnv) : ...`
+    // and keeps the plugin when the result is truthy. A plain config object
+    // has no `hooks`/`options`, so the webpack-style branch must not run.
+    let result;
+    assert.doesNotThrow(() => {
+      result = plugin.apply(
+        { mode: 'production' },
+        { command: 'build', mode: 'production' },
+      );
+    });
+    assert.equal(result, true);
+
+    // The same filter is called without an argument in some paths.
+    assert.equal(plugin.apply(), true);
+  });
+
   it('injects metadata through transformIndexHtml', () => {
     const plugin = buildMetaInjector(OPTIONS);
     const result = plugin.transformIndexHtml(HTML);

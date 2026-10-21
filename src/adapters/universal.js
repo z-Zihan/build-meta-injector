@@ -93,8 +93,34 @@ export default function buildMetaInjector(userOptions) {
     },
 
     apply(compiler) {
+      // `apply` means two completely different things depending on the host:
+      //
+      // 1. webpack / rspack: apply(compiler) is the plugin entry point. The
+      //    argument is a compiler object that always exposes `hooks` and
+      //    `options`.
+      // 2. Vite: `apply` is NOT a hook. It is a plugin filter that Vite calls
+      //    during resolveConfig as `p.apply({ ...config, mode }, configEnv)`
+      //    and keeps the plugin only when the return value is truthy. The
+      //    argument is an ordinary config object (or undefined), so it has no
+      //    `hooks`/`options`. Reading `compiler.options.mode` there throws
+      //    "Cannot read properties of undefined (reading 'mode')" and crashes
+      //    the build.
+      //
+      // So discriminate on the compiler shape first: only route to the
+      // webpack/rspack adapters when this really looks like a compiler.
+      // Everything else is Vite probing the filter, where `true` enables the
+      // plugin for both build and serve.
+      const isCompiler = Boolean(
+        compiler &&
+        typeof compiler === 'object' &&
+        compiler.hooks &&
+        compiler.options
+      );
+
+      if (!isCompiler) return true;
+
       // Rspack exposes itself on the compiler; everything else is webpack.
-      const isRspack = Boolean(compiler && (compiler.rspack || compiler.__rspack));
+      const isRspack = Boolean(compiler.rspack || compiler.__rspack);
       if (isRspack) {
         rspack.apply(compiler);
       } else {
