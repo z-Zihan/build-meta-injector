@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.7 (2026-10-21)
+
+### Fixed
+
+- 🐛 **Critical (esbuild)**: esbuild validates plugin objects via `Object.keys` and rejected the universal plugin (`Invalid option "configResolved"`). All hooks except `name`/`setup` are now non-enumerable properties, so esbuild accepts the object while Vite/Rollup/Webpack keep working via direct property access.
+- 🐛 **Critical (webpack/rspack)**: injected comments were stripped in production. Two compounding causes, both verified in real builds: webpack 5.112+ runs html-minifier-terser over `.html` assets (comments stripped), and html-webpack-plugin emits its asset asynchronously so it only appears in the compilation after `OPTIMIZE_INLINE`. The webpack/rspack path now injects at `PROCESS_ASSETS_STAGE_ANALYSE` (4000) directly on final assets, after every optimizer and once the html exists.
+
+### Verified
+
+- Real end-to-end builds: Vite 5, webpack 5.112, Rollup 4, Rspack 1.5, esbuild 0.27 — all emit `Build Time`/`Version`/`Environment` comments in the final HTML.
+
 ## 1.0.6 (2026-10-21)
 
 ### Fixed
