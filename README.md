@@ -55,6 +55,17 @@ npm install build-meta-injector -D
 
 All options are optional — **pass nothing and it just works**:
 
+Core utilities (framework-agnostic):
+
+```js
+// Core utilities (framework-agnostic)
+import { collectMeta, injectHtml } from 'build-meta-injector';
+const meta = collectMeta();
+const html = injectHtml('<html>...</html>', meta);
+```
+
+The main entry point exports framework-independent helpers: they collect metadata and inject it into an HTML string, with no knowledge of any build tool. The adapter subpaths (`build-meta-injector/vite`, `/webpack`, `/rollup`, `/rspack`, `/esbuild`) wrap these helpers for a specific build tool's integration points, so use the adapters when you want automatic integration.
+
 ```js
 // Vite
 import buildMetaInjector from 'build-meta-injector/vite';
@@ -166,6 +177,47 @@ await esbuild.build({
 ```
 
 > **Note**: esbuild doesn't generate HTML natively. You must specify source and output HTML paths via `html` and `outputHtml`.
+
+### Core API (Framework-Agnostic)
+
+The main entry point `build-meta-injector` exports the building blocks that every adapter is built on. Use them for a build tool without a dedicated adapter, or when you want the raw metadata lines instead of automatic HTML injection.
+
+| Export | Signature | Purpose |
+|--------|-----------|---------|
+| `resolveOptions` | `resolveOptions(userOptions?: BuildMetaInjectorOptions): ResolvedOptions` | Merge user options with defaults, dropping unknown keys and invalid values. |
+| `defaultOptions` | `ResolvedOptions` (constant) | The default option object that `resolveOptions` starts from. |
+| `collectGitInfo` | `collectGitInfo(options: ResolvedOptions, gitRunner?: GitRunner): GitInfo` | Run Git to collect short/full commit hash, commit message and branch. |
+| `resolveEnvironment` | `resolveEnvironment(options: ResolvedOptions, mode?: string \| null): string \| null` | Resolve the environment name from `environmentValue`, the build mode, then `environmentKeys`. |
+| `readPackageVersion` | `readPackageVersion(root?: string, fsImpl?, pathImpl?): string \| null` | Read `version` from the nearest `package.json`, walking up to 5 directories. |
+| `formatTime` | `formatTime(timeZone?: string, locale?: string): string \| null` | Format the current time as `YYYY/M/D HH:mm:ss`. |
+| `sanitizeCommentValue` | `sanitizeCommentValue(value: unknown, maxLength?: number): string` | Make a value safe inside an HTML comment: strips control chars, escapes `--`, truncates to 200 chars by default. |
+| `sanitizeCommentKey` | `sanitizeCommentKey(key: unknown, maxLength?: number): string` | Same as above for keys, additionally stripping `<` and `>`, truncating to 50 chars by default. |
+| `injectHtml` | `injectHtml(html: string, comments: string[], position?: InjectPosition \| string): string` | Insert the comment lines into an HTML string at the given position (default `after-doctype`). |
+| `collectMeta` | `collectMeta(userOptions?: BuildMetaInjectorOptions, context?: MetaContext): string[]` | Resolve options and return every enabled metadata line, ready to pass to `injectHtml`. |
+
+A typical use is `collectMeta` plus `injectHtml` in a custom build script:
+
+```js
+import { collectMeta, injectHtml } from 'build-meta-injector';
+import { readFileSync, writeFileSync } from 'node:fs';
+
+const meta = collectMeta({ branch: true });
+const html = readFileSync('index.html', 'utf-8');
+writeFileSync('dist/index.html', injectHtml(html, meta, 'head-start'));
+```
+
+If you only need individual pieces, resolve the options once and pass them to the lower-level helpers:
+
+```js
+import { resolveOptions, resolveEnvironment, readPackageVersion, collectGitInfo } from 'build-meta-injector';
+
+const options = resolveOptions({ root: process.cwd() });
+const env = resolveEnvironment(options, 'production');
+const version = readPackageVersion(options.root);
+const { shortHash } = collectGitInfo(options);
+```
+
+`root`, `fsImpl` and `pathImpl` arguments are injectable so the helpers can be tested without touching the real file system or Git.
 
 ### Full Configuration Reference
 
@@ -492,6 +544,17 @@ npm install build-meta-injector -D
 
 所有参数都是可选的，**什么也不传就能用**：
 
+主入口工具函数（与框架无关）：
+
+```js
+// 核心工具函数（与框架无关）
+import { collectMeta, injectHtml } from 'build-meta-injector';
+const meta = collectMeta();
+const html = injectHtml('<html>...</html>', meta);
+```
+
+主入口导出的是与框架无关的工具函数：负责收集元信息并注入到 HTML 字符串中，不感知任何构建工具。适配器子路径（`build-meta-injector/vite`、`/webpack`、`/rollup`、`/rspack`、`/esbuild`）则是这些工具函数在具体构建工具集成点上的封装，需要自动集成时使用适配器。
+
 ```js
 // Vite — 无参数调用
 import buildMetaInjector from 'build-meta-injector/vite';
@@ -603,6 +666,47 @@ await esbuild.build({
 ```
 
 > **注意**：esbuild 本身不生成 HTML。需要通过 `html` 和 `outputHtml` 选项指定源 HTML 和输出路径。
+
+### Core API（与框架无关）
+
+主入口 `build-meta-injector` 导出所有适配器底层依赖的构建块。适用于没有专用适配器的构建工具，或者你只想拿到原始元信息行、自行控制 HTML 注入的场景。
+
+| 导出 | 签名 | 用途 |
+|------|------|------|
+| `resolveOptions` | `resolveOptions(userOptions?: BuildMetaInjectorOptions): ResolvedOptions` | 将用户参数与默认值合并，丢弃未知字段和非法值。 |
+| `defaultOptions` | `ResolvedOptions`（常量） | `resolveOptions` 合并时使用的默认配置对象。 |
+| `collectGitInfo` | `collectGitInfo(options: ResolvedOptions, gitRunner?: GitRunner): GitInfo` | 调用 Git 收集短/完整 Commit Hash、Commit Message 和分支。 |
+| `resolveEnvironment` | `resolveEnvironment(options: ResolvedOptions, mode?: string \| null): string \| null` | 按 `environmentValue` → 构建 mode → `environmentKeys` 的顺序解析环境名称。 |
+| `readPackageVersion` | `readPackageVersion(root?: string, fsImpl?, pathImpl?): string \| null` | 从最近的 `package.json` 读取 `version`，最多向上查找 5 级目录。 |
+| `formatTime` | `formatTime(timeZone?: string, locale?: string): string \| null` | 将当前时间格式化为 `YYYY/M/D HH:mm:ss`。 |
+| `sanitizeCommentValue` | `sanitizeCommentValue(value: unknown, maxLength?: number): string` | 让值可以安全放入 HTML 注释：去除控制字符、转义 `--`，默认截断到 200 字符。 |
+| `sanitizeCommentKey` | `sanitizeCommentKey(key: unknown, maxLength?: number): string` | 同上，用于键名，额外去除 `<` 和 `>`，默认截断到 50 字符。 |
+| `injectHtml` | `injectHtml(html: string, comments: string[], position?: InjectPosition \| string): string` | 按指定位置把注释行插入 HTML 字符串（默认 `after-doctype`）。 |
+| `collectMeta` | `collectMeta(userOptions?: BuildMetaInjectorOptions, context?: MetaContext): string[]` | 解析参数并返回所有已启用的元信息行，可直接传给 `injectHtml`。 |
+
+典型用法是在自定义构建脚本里组合 `collectMeta` 和 `injectHtml`：
+
+```js
+import { collectMeta, injectHtml } from 'build-meta-injector';
+import { readFileSync, writeFileSync } from 'node:fs';
+
+const meta = collectMeta({ branch: true });
+const html = readFileSync('index.html', 'utf-8');
+writeFileSync('dist/index.html', injectHtml(html, meta, 'head-start'));
+```
+
+如果只需要其中某几项能力，可以先解析一次配置，再传给底层函数：
+
+```js
+import { resolveOptions, resolveEnvironment, readPackageVersion, collectGitInfo } from 'build-meta-injector';
+
+const options = resolveOptions({ root: process.cwd() });
+const env = resolveEnvironment(options, 'production');
+const version = readPackageVersion(options.root);
+const { shortHash } = collectGitInfo(options);
+```
+
+`root`、`fsImpl`、`pathImpl` 均可注入，便于在不接触真实文件系统或 Git 的情况下编写测试。
 
 ### 完整配置参考
 
