@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.6 (2026-10-21)
+
+### Fixed
+
+- 🐛 **Critical**: The universal plugin's `apply` collided with Vite's plugin-filter convention. Vite calls `apply(config, env)` during config resolution; the plugin assumed a webpack compiler and crashed every Vite build (`Cannot read properties of undefined (reading 'mode')`). It now dispatches by argument shape: a real webpack/rspack compiler goes to the webpack/rspack adapters, anything else is treated as Vite's filter call and returns `true`.
+- Verified against a real `vite build`: metadata lands in the emitted `dist/index.html`.
+
 ## 1.0.5 (2026-10-21)
 
 ### Features
