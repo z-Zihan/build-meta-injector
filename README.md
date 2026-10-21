@@ -1,6 +1,18 @@
 # build-meta-injector
 
-> Inject build time, version, environment and Git metadata into HTML across Vite, Webpack, Rollup, Rspack and esbuild.
+[![npm version](https://img.shields.io/npm/v/build-meta-injector.svg)](https://www.npmjs.com/package/build-meta-injector)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
+
+**One import, every build tool.** Inject build time, version, environment and Git metadata into your final HTML — the same code works unchanged in Vite, Webpack, Rollup, Rspack and esbuild.
+
+```js
+import buildMetaInjector from 'build-meta-injector';
+
+export default {
+  plugins: [buildMetaInjector()],
+};
+```
 
 [English](#english) | [中文](#中文)
 
@@ -22,16 +34,21 @@
 
 ### Supported Build Tools
 
-| Build Tool | Integration | Extra Plugin Needed |
-|------------|------------|---------------------|
-| Vite | `transformIndexHtml` | ❌ |
-| Webpack | `html-webpack-plugin` hooks / asset scanning | ⚠️ Optional |
-| Rollup | `generateBundle` | ❌ |
-| Rspack | `html-webpack-plugin` / `@rspack/core` | ⚠️ Optional |
-| esbuild | `onStart` / `onEnd` | ❌ |
+| Build Tool | Integration | Default Usage | Extra Plugin Needed |
+|------------|------------|---------------|---------------------|
+| Vite | `transformIndexHtml` | ✅ `buildMetaInjector()` | ❌ |
+| Webpack | `processAssets` (final assets) | ✅ `buildMetaInjector()` | ⚠️ Optional (`html-webpack-plugin`) |
+| Rollup | `generateBundle` | ✅ `buildMetaInjector()` | ❌ |
+| Rspack | `processAssets` (final assets) | ✅ `buildMetaInjector()` | ⚠️ Optional |
+| esbuild | `onStart` / `onEnd` | ⚠️ `buildMetaInjector({ html, outputHtml })` | ❌ |
+
+Every row uses the same main entry. esbuild is the only exception: it has no HTML pipeline, so it needs explicit `html` and `outputHtml` paths.
+
+The per-tool subpath adapters (`build-meta-injector/vite`, `/webpack`, `/rollup`, `/rspack`, `/esbuild`) still exist as an optional, finer-grained way to wire the plugin. See [Per-tool Usage](#per-tool-usage-optional-subpaths).
 
 ### Features
 
+- 🧩 One universal default export — no per-tool configuration
 - 📦 Build time injection (configurable timezone & locale)
 - 🏷️ Version injection (reads host project's `package.json`)
 - 🌍 Environment info injection (multi-level priority resolution)
@@ -60,121 +77,106 @@ import buildMetaInjector from 'build-meta-injector';
 export default { plugins: [buildMetaInjector()] };
 ```
 
-The same code works unchanged in Vite, Webpack, Rollup, Rspack and esbuild. The default export carries the hooks of all five tools (`transformIndexHtml`, `generateBundle`, `apply`, `setup`); each tool uses the ones it understands and ignores the rest, so there is no detection step and nothing to configure.
+The default export carries the hooks of all five tools (`transformIndexHtml`, `generateBundle`, `apply`, `setup`); each tool uses the ones it understands and ignores the rest, so there is no detection step and nothing to configure.
 
 > ⚠️ esbuild has no HTML pipeline of its own, so tell it where the HTML lives: `buildMetaInjector({ html: 'index.html', outputHtml: 'dist/index.html' })`.
 
-Need finer-grained control? Each adapter is still available on its own subpath:
+### Per-tool Usage (Optional Subpaths)
+
+Prefer a dedicated adapter? Each one is available on its own subpath and behaves identically to the universal export for that tool:
+
+| Build Tool | Entry |
+|------------|-------|
+| Vite | `import buildMetaInjector from 'build-meta-injector/vite'` |
+| Webpack | `const buildMetaInjector = require('build-meta-injector/webpack')` |
+| Rollup | `import buildMetaInjector from 'build-meta-injector/rollup'` |
+| Rspack | `const buildMetaInjector = require('build-meta-injector/rspack')` |
+| esbuild | `import buildMetaInjector from 'build-meta-injector/esbuild'` |
 
 ```js
-// Vite
+// vite.config.js
+import { defineConfig } from 'vite';
 import buildMetaInjector from 'build-meta-injector/vite';
-export default { plugins: [buildMetaInjector()] };
 
-// Webpack
-const buildMetaInjector = require('build-meta-injector/webpack');
-module.exports = { plugins: [buildMetaInjector()] };
-
-// Rollup
-import buildMetaInjector from 'build-meta-injector/rollup';
-export default { plugins: [buildMetaInjector()] };
+export default defineConfig({
+  plugins: [buildMetaInjector()],
+});
 ```
 
-The main entry also exports the framework-independent helpers the adapters are built on:
+### What Gets Injected by Default
 
-```js
-import { collectMeta, injectHtml } from 'build-meta-injector';
-const meta = collectMeta();
-const html = injectHtml('<html>...</html>', meta);
-```
+Five items are on with zero config. Each one can be turned off individually:
 
-By default, the plugin injects: build time, version, environment, commit hash, and commit message.
+| Item | Example Output | Turn Off With |
+|------|----------------|---------------|
+| Build Time | `<!-- Build Time: 2026/10/21 13:30:00 -->` | `buildTime: false` |
+| Version | `<!-- Version: 1.0.7 -->` | `version: false` |
+| Environment | `<!-- Environment: production -->` | `environment: false` |
+| Commit Hash | `<!-- Commit Hash (Short): abcdef12 -->` | `commitHash: false` |
+| Commit Message | `<!-- Commit Message: feat: add new feature -->` | `commitMessage: false` |
+
+Off by default: `branch`, `fullCommitHash`, `customData`. See [Full Configuration Reference](#full-configuration-reference).
 
 ### Vite Example
 
 ```js
 import { defineConfig } from 'vite';
-import buildMetaInjector from 'build-meta-injector/vite';
+import buildMetaInjector from 'build-meta-injector';
 
 export default defineConfig({
-  plugins: [
-    buildMetaInjector({
-      buildTime: true,
-      version: true,
-      environment: true,
-      commitHash: true,
-      commitMessage: true,
-    }),
-  ],
+  plugins: [buildMetaInjector()],
 });
 ```
+
+> All options from [Full Configuration Reference](#full-configuration-reference) can be passed to `buildMetaInjector({ ... })`. The `build-meta-injector/vite` subpath also works.
 
 ### Webpack Example
 
 ```js
-const buildMetaInjector = require('build-meta-injector/webpack');
+const buildMetaInjector = require('build-meta-injector');
 
 module.exports = {
-  plugins: [
-    buildMetaInjector({
-      buildTime: true,
-      version: true,
-      environment: true,
-    }),
-  ],
-});
+  plugins: [buildMetaInjector()],
+};
 ```
 
-> **Note**: The Webpack adapter prefers `html-webpack-plugin` hooks. If `html-webpack-plugin` is not installed, it scans build output for `.html` files and injects into them.
+> Injection runs on the final assets at `PROCESS_ASSETS_STAGE_ANALYSE`, after webpack's optimizers and after `html-webpack-plugin` has emitted its file. The subpath `build-meta-injector/webpack` also works.
 
 ### Rollup Example
 
 ```js
-import buildMetaInjector from 'build-meta-injector/rollup';
+import buildMetaInjector from 'build-meta-injector';
 
 export default {
-  plugins: [
-    buildMetaInjector({
-      buildTime: true,
-      environment: true,
-      commitHash: true,
-    }),
-  ],
-});
+  plugins: [buildMetaInjector()],
+};
 ```
 
-> **Note**: Rollup itself doesn't generate HTML. This plugin processes HTML assets in the build output (requires another HTML generation plugin).
+> Rollup itself doesn't generate HTML. The plugin processes HTML assets in the build output (requires another HTML generation plugin). The subpath `build-meta-injector/rollup` also works.
 
 ### Rspack Example
 
 ```js
-const buildMetaInjector = require('build-meta-injector/rspack');
+const buildMetaInjector = require('build-meta-injector');
 
 module.exports = {
-  plugins: [
-    buildMetaInjector({
-      buildTime: true,
-      version: true,
-      environment: true,
-    }),
-  ],
-});
+  plugins: [buildMetaInjector()],
+};
 ```
+
+> Works with `HtmlRspackPlugin` and `html-webpack-plugin`. The subpath `build-meta-injector/rspack` also works.
 
 ### esbuild Example
 
 ```js
 import esbuild from 'esbuild';
-import buildMetaInjector from 'build-meta-injector/esbuild';
+import buildMetaInjector from 'build-meta-injector';
 
 await esbuild.build({
   entryPoints: ['src/index.js'],
   outdir: 'dist',
   plugins: [
     buildMetaInjector({
-      buildTime: true,
-      version: true,
-      environment: true,
       html: 'index.html',
       outputHtml: 'dist/index.html',
     }),
@@ -182,7 +184,7 @@ await esbuild.build({
 });
 ```
 
-> **Note**: esbuild doesn't generate HTML natively. You must specify source and output HTML paths via `html` and `outputHtml`.
+> **Note**: esbuild doesn't generate HTML natively. `html` is required; `outputHtml` defaults to the same directory as `html` with the filename `index.html`. The subpath `build-meta-injector/esbuild` also works.
 
 ### Core API (Framework-Agnostic)
 
@@ -454,8 +456,9 @@ esbuild doesn't generate HTML files. You must specify `html` and `outputHtml` op
 
 ### Webpack HTML Plugin Notes
 
-- Prefers `html-webpack-plugin` hooks when available
-- Falls back to scanning build assets for `.html` files
+- With `html-webpack-plugin` installed, the subpath webpack adapter taps its `beforeEmit` hook
+- Without it, the adapter falls back to scanning build assets for `.html` files
+- The universal default export uses the `processAssets` final-asset stage instead, which survives HTML minification
 - `html-webpack-plugin` is an optional peer dependency
 
 ### Safety
@@ -493,7 +496,13 @@ A: The corresponding fields are skipped — the build never fails.
 A: Yes, use the `customData` option.
 
 **Q: Does it support TypeScript?**
-A: The plugin is written in pure JavaScript, but works fine in TypeScript projects.
+A: The plugin is written in pure JavaScript, but ships type declarations and works fine in TypeScript projects.
+
+**Q: Why can't I see the comments in a webpack production build?**
+A: HTML minification strips comments. Webpack 5.112+ runs `html-minifier-terser` over `.html` assets, and `html-webpack-plugin`'s own production `minify` does the same earlier in the pipeline. Since 1.0.7 the plugin injects at `PROCESS_ASSETS_STAGE_ANALYSE` (final assets), after every optimizer and after the HTML file exists, so the comments survive. If you added a custom minification step that runs after asset processing, keep final assets mutable — otherwise it will strip the comments again.
+
+**Q: In a monorepo, which `package.json` is used for `version`?**
+A: The plugin walks up from the working directory (or `root`) and uses the nearest `package.json` that has a `version` field, checking up to 5 levels. Point `root` at a specific package if you need to pin it.
 
 ### License
 
@@ -502,6 +511,24 @@ A: The plugin is written in pure JavaScript, but works fine in TypeScript projec
 ---
 
 ## 中文
+
+[![npm 版本](https://img.shields.io/npm/v/build-meta-injector.svg)](https://www.npmjs.com/package/build-meta-injector)
+[![许可证](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
+
+**一个 import，适配全部构建工具。** 把构建时间、版本号、环境和 Git 信息注入最终 HTML——同一段代码在 Vite、Webpack、Rollup、Rspack、esbuild 中都能原样工作。
+
+```js
+import buildMetaInjector from 'build-meta-injector';
+
+export default {
+  plugins: [buildMetaInjector()],
+};
+```
+
+[English](#english) | [中文](#中文)
+
+---
 
 ### 项目介绍
 
@@ -517,16 +544,21 @@ A: The plugin is written in pure JavaScript, but works fine in TypeScript projec
 
 ### 支持的构建工具
 
-| 构建工具 | 支持方式 | 需要额外插件 |
-|---------|---------|-------------|
-| Vite | `transformIndexHtml` | ❌ |
-| Webpack | `html-webpack-plugin` hooks / asset scanning | ⚠️ 可选 |
-| Rollup | `generateBundle` | ❌ |
-| Rspack | `html-webpack-plugin` / `@rspack/core` | ⚠️ 可选 |
-| esbuild | `onStart` / `onEnd` | ❌ |
+| 构建工具 | 支持方式 | 默认写法 | 需要额外插件 |
+|---------|---------|---------|-------------|
+| Vite | `transformIndexHtml` | ✅ `buildMetaInjector()` | ❌ |
+| Webpack | `processAssets`（最终资产） | ✅ `buildMetaInjector()` | ⚠️ 可选（`html-webpack-plugin`） |
+| Rollup | `generateBundle` | ✅ `buildMetaInjector()` | ❌ |
+| Rspack | `processAssets`（最终资产） | ✅ `buildMetaInjector()` | ⚠️ 可选 |
+| esbuild | `onStart` / `onEnd` | ⚠️ `buildMetaInjector({ html, outputHtml })` | ❌ |
+
+每一行用的都是同一个主入口。唯一的例外是 esbuild：它本身不处理 HTML，需要显式传入 `html` 和 `outputHtml` 路径。
+
+按子路径引入的适配器（`build-meta-injector/vite`、`/webpack`、`/rollup`、`/rspack`、`/esbuild`）仍然保留，作为可选的细粒度接入方式。见[按工具引入（可选的子路径）](#按工具引入可选的子路径)。
 
 ### 功能列表
 
+- 🧩 唯一的 universal 默认导出，无需按工具分别配置
 - 📦 构建时间注入（支持时区和语言配置）
 - 🏷️ 版本号注入（读取宿主项目 `package.json`）
 - 🌍 环境信息注入（多级优先级解析）
@@ -555,121 +587,106 @@ import buildMetaInjector from 'build-meta-injector';
 export default { plugins: [buildMetaInjector()] };
 ```
 
-这段代码在 Vite、Webpack、Rollup、Rspack、esbuild 中都能原样工作。默认导出的插件同时携带五种构建工具的钩子（`transformIndexHtml`、`generateBundle`、`apply`、`setup`），各构建工具只用自己认识的钩子，其余字段会被忽略，所以不需要任何探测或配置。
+默认导出的插件同时携带五种构建工具的钩子（`transformIndexHtml`、`generateBundle`、`apply`、`setup`），各构建工具只用自己认识的钩子，其余字段会被忽略，所以不需要任何探测或配置。
 
 > ⚠️ esbuild 本身不处理 HTML 文件，需要告诉它 HTML 的位置：`buildMetaInjector({ html: 'index.html', outputHtml: 'dist/index.html' })`。
 
-需要更细粒度控制时，仍可按子路径引入单个适配器：
+### 按工具引入（可选的子路径）
+
+如果需要单独的适配器，每个工具都有对应的子路径入口，行为与 universal 导出在该工具下完全一致：
+
+| 构建工具 | 入口写法 |
+|---------|---------|
+| Vite | `import buildMetaInjector from 'build-meta-injector/vite'` |
+| Webpack | `const buildMetaInjector = require('build-meta-injector/webpack')` |
+| Rollup | `import buildMetaInjector from 'build-meta-injector/rollup'` |
+| Rspack | `const buildMetaInjector = require('build-meta-injector/rspack')` |
+| esbuild | `import buildMetaInjector from 'build-meta-injector/esbuild'` |
 
 ```js
-// Vite
+// vite.config.js
+import { defineConfig } from 'vite';
 import buildMetaInjector from 'build-meta-injector/vite';
-export default { plugins: [buildMetaInjector()] };
 
-// Webpack
-const buildMetaInjector = require('build-meta-injector/webpack');
-module.exports = { plugins: [buildMetaInjector()] };
-
-// Rollup
-import buildMetaInjector from 'build-meta-injector/rollup';
-export default { plugins: [buildMetaInjector()] };
+export default defineConfig({
+  plugins: [buildMetaInjector()],
+});
 ```
 
-主入口同时导出这些适配器所依赖的、与框架无关的工具函数：
+### 默认注入内容
 
-```js
-import { collectMeta, injectHtml } from 'build-meta-injector';
-const meta = collectMeta();
-const html = injectHtml('<html>...</html>', meta);
-```
+零配置下默认开启这五项，每一项都可以单独关闭：
 
-默认会注入：构建时间、版本号、环境信息、Commit Hash、Commit Message。
+| 项目 | 输出示例 | 关闭方式 |
+|------|---------|---------|
+| 构建时间 | `<!-- Build Time: 2026/10/21 13:30:00 -->` | `buildTime: false` |
+| 版本号 | `<!-- Version: 1.0.7 -->` | `version: false` |
+| 环境 | `<!-- Environment: production -->` | `environment: false` |
+| Commit Hash | `<!-- Commit Hash (Short): abcdef12 -->` | `commitHash: false` |
+| Commit Message | `<!-- Commit Message: feat: add new feature -->` | `commitMessage: false` |
+
+默认关闭：`branch`、`fullCommitHash`、`customData`。详见[完整配置参考](#完整配置参考)。
 
 ### Vite 示例
 
 ```js
 import { defineConfig } from 'vite';
-import buildMetaInjector from 'build-meta-injector/vite';
+import buildMetaInjector from 'build-meta-injector';
 
 export default defineConfig({
-  plugins: [
-    buildMetaInjector({
-      buildTime: true,
-      version: true,
-      environment: true,
-      commitHash: true,
-      commitMessage: true,
-    }),
-  ],
+  plugins: [buildMetaInjector()],
 });
 ```
+
+> [完整配置参考](#完整配置参考)中的所有选项都可以传给 `buildMetaInjector({ ... })`。也可以使用 `build-meta-injector/vite` 子路径。
 
 ### Webpack 示例
 
 ```js
-const buildMetaInjector = require('build-meta-injector/webpack');
+const buildMetaInjector = require('build-meta-injector');
 
 module.exports = {
-  plugins: [
-    buildMetaInjector({
-      buildTime: true,
-      version: true,
-      environment: true,
-    }),
-  ],
-});
+  plugins: [buildMetaInjector()],
+};
 ```
 
-> **注意**：Webpack 适配器优先使用 `html-webpack-plugin` 的 hooks。如果未安装 `html-webpack-plugin`，会扫描构建产物中的 `.html` 文件并注入。
+> 注入发生在 `PROCESS_ASSETS_STAGE_ANALYSE` 阶段的最终资产上，此时 webpack 的各优化器已执行完毕，且 `html-webpack-plugin` 已输出 HTML 文件。也可以使用 `build-meta-injector/webpack` 子路径。
 
 ### Rollup 示例
 
 ```js
-import buildMetaInjector from 'build-meta-injector/rollup';
+import buildMetaInjector from 'build-meta-injector';
 
 export default {
-  plugins: [
-    buildMetaInjector({
-      buildTime: true,
-      environment: true,
-      commitHash: true,
-    }),
-  ],
-});
+  plugins: [buildMetaInjector()],
+};
 ```
 
-> **注意**：Rollup 本身不生成 HTML。本插件会处理构建输出中的 HTML asset（需要其他 HTML 生成插件配合）。
+> Rollup 本身不生成 HTML。本插件会处理构建输出中的 HTML asset（需要其他 HTML 生成插件配合）。也可以使用 `build-meta-injector/rollup` 子路径。
 
 ### Rspack 示例
 
 ```js
-const buildMetaInjector = require('build-meta-injector/rspack');
+const buildMetaInjector = require('build-meta-injector');
 
 module.exports = {
-  plugins: [
-    buildMetaInjector({
-      buildTime: true,
-      version: true,
-      environment: true,
-    }),
-  ],
-});
+  plugins: [buildMetaInjector()],
+};
 ```
+
+> 同时兼容 `HtmlRspackPlugin` 和 `html-webpack-plugin`。也可以使用 `build-meta-injector/rspack` 子路径。
 
 ### esbuild 示例
 
 ```js
 import esbuild from 'esbuild';
-import buildMetaInjector from 'build-meta-injector/esbuild';
+import buildMetaInjector from 'build-meta-injector';
 
 await esbuild.build({
   entryPoints: ['src/index.js'],
   outdir: 'dist',
   plugins: [
     buildMetaInjector({
-      buildTime: true,
-      version: true,
-      environment: true,
       html: 'index.html',
       outputHtml: 'dist/index.html',
     }),
@@ -677,7 +694,7 @@ await esbuild.build({
 });
 ```
 
-> **注意**：esbuild 本身不生成 HTML。需要通过 `html` 和 `outputHtml` 选项指定源 HTML 和输出路径。
+> **注意**：esbuild 本身不生成 HTML。`html` 必传；`outputHtml` 未指定时默认写到 `html` 同目录下的 `index.html`。也可以使用 `build-meta-injector/esbuild` 子路径。
 
 ### Core API（与框架无关）
 
@@ -949,8 +966,9 @@ esbuild 本身不生成 HTML 文件。必须通过 `html` 和 `outputHtml` 配�
 
 ### Webpack HTML 插件说明
 
-- 优先使用 `html-webpack-plugin` 的 hooks
-- 如果未安装，会扫描构建产物中的 `.html` 文件
+- 安装了 `html-webpack-plugin` 时，webpack 子路径适配器会挂载它的 `beforeEmit` hook
+- 未安装时，适配器会扫描构建产物中的 `.html` 文件
+- universal 默认导出则在 `processAssets` 的最终资产阶段注入，不会被 HTML 压缩移除
 - `html-webpack-plugin` 是可选 peer dependency
 
 ### 安全说明
@@ -988,7 +1006,13 @@ A: 跳过对应字段，不会导致构建失败。
 A: 可以，使用 `customData` 配置项。
 
 **Q: 支持 TypeScript 吗？**
-A: 本插件使用纯 JavaScript，但可以在 TypeScript 项目中正常使用。
+A: 本插件使用纯 JavaScript 编写，自带类型声明，可以在 TypeScript 项目中正常使用。
+
+**Q: 为什么 webpack 生产构建里看不到注释？**
+A: HTML 压缩会移除注释。webpack 5.112+ 会对 `.html` 资产运行 `html-minifier-terser`，`html-webpack-plugin` 自己开启的生产压缩 `minify` 也会在更早阶段做同样的事。插件从 1.0.7 起改为在 `PROCESS_ASSETS_STAGE_ANALYSE`（最终资产）阶段注入，此时所有优化器都已执行、HTML 文件也已存在，因此注释能够保留。如果你另外接了在资产处理之后运行的压缩管线，请保留最终资产的可修改性，否则注释会被再次移除。
+
+**Q: Monorepo 里 `version` 读的是哪个 `package.json`？**
+A: 从工作目录（或 `root`）开始向上查找，使用最近一个带 `version` 字段的 `package.json`，最多查找 5 级。需要固定到某个包时，把 `root` 指向该包即可。
 
 ### License
 
