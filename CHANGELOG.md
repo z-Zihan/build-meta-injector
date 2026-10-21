@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.4 (2026-10-21)
+
+### Fixed
+
+- 🐛 **Critical**: `dist/index.js` (main entry) was invalid syntax on all previous published versions (1.0.0–1.0.3). The bundler did not understand `export { x } from './y.js'` re-export statements, emitting bare `{ x } from './y.js'` — importing the package main entry always threw a SyntaxError. Adapter entry points (`/vite`, `/webpack`, etc.) were unaffected.
+- Build bundler now recognizes re-export statements as dependencies, inlines the target modules, and rewrites `export { x } from './y.js'` to `export { x }` in the bundle.
+
 ## 1.0.3 (2026-08-12)
 
 ### Changes

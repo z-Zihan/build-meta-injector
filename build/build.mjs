@@ -23,6 +23,9 @@ function parseImports(source) {
   const namedAndDefaultRe = /import\s+(\w+)\s*,\s*\{([^}]+)\}\s+from\s+['"]([^'"]+)['"];?\n?/g;
   const starImportRe = /import\s+\*\s+as\s+(\w+)\s+from\s+['"]([^'"]+)['"];?\n?/g;
   const sideEffectRe = /import\s+['"]([^'"]+)['"];?\n?/g;
+  // Re-export statements (`export { x } from './y.js'`) also create a
+  // dependency on the target module and must be inlined with it.
+  const reexportRe = /export\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"];?\n?/g;
 
   // We need to check named+default first since it's a superset of default import
   let match;
@@ -72,6 +75,19 @@ function parseImports(source) {
     imports.push({
       type: 'side-effect',
       from: match[1],
+      fullMatch: match[0],
+    });
+  }
+
+  while ((match = reexportRe.exec(source)) !== null) {
+    const names = match[1].split(',').map(n => {
+      const parts = n.trim().split(/\s+as\s+/);
+      return { name: parts[0].trim(), alias: parts[1] ? parts[1].trim() : null };
+    });
+    imports.push({
+      type: 'reexport',
+      names,
+      from: match[2],
       fullMatch: match[0],
     });
   }
@@ -162,8 +178,25 @@ function stripImports(source) {
 
 function stripExports(source) {
   return source
-    .replace(/export\s+(default\s+)?/g, '')
-    .replace(/export\s+\{([^}]+)\}\s*(?:from\s+['"]([^'"]+)['"])?;?\n?/g, '');
+    // Drop `export { a, b } from './x.js'` whole: the source module is inlined
+    // separately, so nothing should be re-exported from a now-stripped specifier.
+    .replace(/export\s+\{[^}]*\}\s*from\s*['"][^'"]+['"];?\n?/g, '')
+    .replace(/export\s+\*\s*from\s*['"][^'"]+['"];?\n?/g, '')
+    // Drop bare `export { a, b };` lists. This must run before the generic
+    // `export ` strip, otherwise the list is left behind without its keyword.
+    .replace(/export\s+\{[^}]*\}\s*;?\n?/g, '')
+    .replace(/export\s+(default\s+)?/g, '');
+}
+
+// Rewrite `export { a, b } from './x.js'` to `export { a, b };` once the
+// target module's contents have been inlined into the same bundle scope.
+// Bare (non-relative) re-exports are left untouched — they are valid ESM and
+// cannot be inlined.
+function inlineRelativeReexports(source) {
+  return source.replace(
+    /export\s+\{([^}]+)\}\s+from\s+['"](\.[^'"]+)['"];?\n?/g,
+    (_full, names) => `export { ${names.trim()} };\n`
+  );
 }
 
 function bundleEsm(entryRel) {
@@ -205,9 +238,11 @@ function bundleEsm(entryRel) {
     }
   }
   
-  // Entry module — strip only imports, keep exports
+  // Entry module — strip only imports, keep exports. Relative re-exports are
+  // rewritten to plain export lists since their targets are already inlined.
   let entrySource = readSource(entryRel);
   entrySource = stripImports(entrySource);
+  entrySource = inlineRelativeReexports(entrySource);
   chunks.push(entrySource.trim());
   
   return chunks.join('\n\n');
